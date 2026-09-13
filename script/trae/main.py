@@ -13,21 +13,20 @@ Trae CN 已切换为积分计费，本脚本每天自动为配置中的每个账
 - 签到状态: POST https://api.trae.cn/trae/api/v2/ug/checkin_credits/status
 - 领取积分: POST https://api.trae.cn/trae/api/v2/ug/checkin_credits/claim
 
-设备绑定说明（重要）：
-- Trae CN 的签到按「账号 × 已注册设备」校验，x-device-id 必须使用该账号自己注册的
-  设备（本机客户端 icube-dc 键后缀的 16 位数字 ID）。
-- 一台机器上多个账号共用同一设备时，只有该设备所属账号能领取成功，其它账号会被服务端
-  以 code=9095（当前设备今日已经签到 / 设备维度限额）或 code=9074（设备未登记/冲突，
-  文案常为「当前参与用户太多」）拒绝。
-- 伪造/随机设备不可行（实测 code=9074）。
-- 因此每个账号建议单独配置其 device_id；单账号场景下脚本会自动回退使用本机主客户端设备。
+设备绑定说明（重要，按凭证模式区分）：
+- 桌面令牌模式（access_token）：签到按「账号 × 已注册设备」校验，x-device-id 必须使用该账号
+  自己注册的设备（本机客户端 icube-dc 键后缀的 16 位数字 ID）。一台机器上多个账号共用同一
+  设备时，只有该设备所属账号能领取成功，其它账号会被服务端以 code=9095（设备当日已被占用）
+  或 code=9074（设备未登记/冲突，文案常为「当前参与用户太多」）拒绝。
+- 网页会话模式（session，推荐多账号）：用 X-Cloudide-Session 换取 JWT 后，随机 16 位设备
+  即可签到（实测 code=0）。9074 为偶发风控，脚本会自动换随机设备重试 2 次。
 
 主要能力：
 - 多账号依次处理，账号间随机延迟 5-10 秒
 - 账号级签到设备 ID：优先取账号自身配置/官方客户端配对设备
 - 网页会话（session）失效时自动回退该账号 access_token 再试一次
 - 令牌本地过期预检（expires_at），HTTP 连接/5xx 自动重试（会话复用）
-- 领取失败自动复查状态，区分「真已签到」与「设备冲突/未登记」，如实上报
+- 网页会话 9074 偶发风控自动换设备重试；领取失败自动复查状态，如实上报
 - 汇总与推送单列「需更新凭证」账号，便于及时处理
 
 Author: Assistant
@@ -309,6 +308,21 @@ class TraeTasks:
             self.logger.info(f"{account_name} - 执行签到 (device={device_id})")
             checkin = api.claim_checkin()
 
+            # 网页会话模式：9074 为偶发风控（实测随机设备可签到，见 web_checkin.py 验证），
+            # 换全新随机设备重试 2 次；桌面令牌模式 9074 是真实设备错误，不重试
+            if (not checkin['success'] and checkin.get('code') == 9074
+                    and mode == '网页会话'):
+                for attempt in range(2):
+                    retry_device = str(random.randint(10 ** 15, 10 ** 16 - 1))
+                    self.logger.info(
+                        f"🔄 {account_name} 9074 偶发风控，换随机设备重试 ({attempt + 1}/2)")
+                    retry_api = TraeWebAPI(
+                        session=str(account_info.get('session') or ''),
+                        device_id=retry_device)
+                    checkin = retry_api.claim_checkin()
+                    if checkin['success']:
+                        break
+
             if checkin['success']:
                 result['success'] = True
                 result['message'] = checkin.get('message') or '签到成功'
@@ -338,9 +352,14 @@ class TraeTasks:
                 if code in DEVICE_CONFLICT_CODES or '设备' in raw_error or '参与用户' in raw_error:
                     if code == 9095:
                         result['message'] = DEVICE_SHARED_HINT.format(code=code or '?', message=raw_error)
+                    elif mode == '网页会话':
+                        result['message'] = (
+                            f"签到被临时风控拒绝（code={code}: {raw_error}），已自动换随机设备重试仍失败。"
+                            "网页会话模式无需绑定设备，稍后重跑即可；若持续失败请确认 session 仍有效。"
+                        )
                     else:
                         result['message'] = DEVICE_MISSING_HINT.format(code=code or '?', message=raw_error)
-                    result['device_missing'] = True
+                        result['device_missing'] = True
                 else:
                     result['message'] = raw_error
                 self.logger.error(f"❌ {account_name} 签到失败: {result['message']}")

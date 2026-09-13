@@ -102,6 +102,15 @@ def main() -> int:
     print("[3/3] 领取签到 (随机设备) ...")
     cl = call_api("/trae/api/v2/ug/checkin_credits/claim", token, device)
     cb = cl["body"]
+    # 9074 为偶发风控（实测随机设备可签到），换设备重试 2 次避免误判
+    if cl["http"] == 200 and cb.get("code") == 9074:
+        for attempt in range(2):
+            device = str(random.randint(10 ** 15, 10 ** 16 - 1))
+            print(f"      9074 偶发风控，换随机设备重试 ({attempt + 1}/2) ...")
+            cl = call_api("/trae/api/v2/ug/checkin_credits/claim", token, device)
+            cb = cl["body"]
+            if cb.get("code") in (0, 200):
+                break
     print("      HTTP", cl["http"], "| code", cb.get("code"),
           "| credits", cb.get("credits"), "| msg", str(cb.get("message"))[:80])
     ok = cl["http"] == 200 and (cb.get("code") in (0, 200) or cb.get("checked_in"))
