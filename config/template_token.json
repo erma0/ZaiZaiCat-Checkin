@@ -197,7 +197,7 @@
     "accounts": [
       {
         "account_name": "主号",
-        "refresh_cookies": "sessionid=浏览器 Cookie 的 sessionid 值"
+        "sessionid": "浏览器 Cookie 的 sessionid 值"
       }
     ]
   }

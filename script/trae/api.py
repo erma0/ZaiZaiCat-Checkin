@@ -261,14 +261,14 @@ GET_TOKEN_PATH = '/cloudide/api/v3/common/GetUserToken'
 LOGIN_PATH = '/cloudide/api/v3/trae/Login'
 
 
-def login_refresh(refresh_cookies: str, timeout: int = 30) -> Dict[str, Any]:
+def login_refresh(sessionid: str, timeout: int = 30) -> Dict[str, Any]:
     """
     用长效登录 Cookie 调 /cloudide/api/v3/trae/Login 换取全新 X-Cloudide-Session。
     实测只需 `sessionid` 一个 Cookie（约 60 天有效）即可刷新；浏览器每次打开
     trae.cn 即走此链路自动续期，脚本据此可在 session 过期后自动刷新，配置不再隔天失效。
     """
     headers = {
-        'Cookie': refresh_cookies,
+        'Cookie': f'sessionid={sessionid}',
         'Referer': 'https://www.trae.cn/',
         'Origin': 'https://www.trae.cn',
         'User-Agent': DEFAULT_USER_AGENT,
