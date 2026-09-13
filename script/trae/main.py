@@ -20,6 +20,8 @@ Trae CN 已切换为积分计费，本脚本每天自动为配置中的每个账
   或 code=9074（设备未登记/冲突，文案常为「当前参与用户太多」）拒绝。
 - 网页会话模式（session，推荐多账号）：用 X-Cloudide-Session 换取 JWT 后，随机 16 位设备
   即可签到（实测 code=0）。9074 为偶发风控，脚本会自动换随机设备重试 2 次。
+- 长效登录 Cookie（refresh_cookies，可选）：配置后每次运行先调 /cloudide/api/v3/trae/Login
+  自动刷新 X-Cloudide-Session（与浏览器打开 trae.cn 的续期链路一致），session 约 60 天不失效。
 
 主要能力：
 - 多账号依次处理，账号间随机延迟 5-10 秒
@@ -27,6 +29,7 @@ Trae CN 已切换为积分计费，本脚本每天自动为配置中的每个账
 - 网页会话（session）失效时自动回退该账号 access_token 再试一次
 - 令牌本地过期预检（expires_at），HTTP 连接/5xx 自动重试（会话复用）
 - 网页会话 9074 偶发风控自动换设备重试；领取失败自动复查状态，如实上报
+- 长效 Cookie 自动刷新 session，隔天/隔周签到不因 session 过期失效
 - 汇总与推送单列「需更新凭证」账号，便于及时处理
 
 Author: Assistant
@@ -47,7 +50,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from api import TraeAPI, TraeWebAPI
+from api import TraeAPI, TraeWebAPI, login_refresh
 from import_accounts import (
     get_or_create_device_id,
     scan_client_device_pairs,
@@ -180,6 +183,20 @@ class TraeTasks:
                 (api, mode, device_id, missing_reason)；api 为 None 表示凭证不可用
         """
         session = str(account_info.get('session') or '').strip()
+        refresh_cookies = str(account_info.get('refresh_cookies') or '').strip()
+        if refresh_cookies:
+            # 配置了长效登录 Cookie 时，每次运行先调 /cloudide/api/v3/trae/Login
+            # 刷新 X-Cloudide-Session，保证隔天/隔周 session 失效也能自动续期
+            refreshed = login_refresh(refresh_cookies)
+            if refreshed['success']:
+                session = refreshed['session']
+                account_info['session'] = session
+                self.logger.info(
+                    f"{account_info.get('account_name') or '账号'} - 已用长效 Cookie 刷新 session")
+            else:
+                self.logger.warning(
+                    f"{account_info.get('account_name') or '账号'} 刷新登录态失败: "
+                    f"{refreshed['error']}，改用旧 session")
         if session and not prefer_desktop:
             # 网页会话 JWT 不绑定设备，随机设备即可签到；实测固定设备会触发
             # code=9095（该设备当日已被占用），故每次运行使用全新随机设备

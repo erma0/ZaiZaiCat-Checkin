@@ -258,6 +258,39 @@ class TraeAPI:
 # 网页会话模式使用的主机根（GetUserToken 不在 /trae/... 子路径下）
 ROOT_URL = 'https://api.trae.cn'
 GET_TOKEN_PATH = '/cloudide/api/v3/common/GetUserToken'
+LOGIN_PATH = '/cloudide/api/v3/trae/Login'
+
+
+def login_refresh(refresh_cookies: str, timeout: int = 30) -> Dict[str, Any]:
+    """
+    用长效登录 Cookie（sessionid/sid_tt/uid_tt 等，约 60 天有效）调 /cloudide/api/v3/trae/Login
+    换取全新 X-Cloudide-Session。浏览器每次打开 trae.cn 即走此链路自动续期，
+    脚本据此可在 session 过期后自动刷新，配置不再隔天失效。
+    """
+    headers = {
+        'Cookie': refresh_cookies,
+        'Referer': 'https://www.trae.cn/',
+        'Origin': 'https://www.trae.cn',
+        'User-Agent': DEFAULT_USER_AGENT,
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+    }
+    try:
+        resp = _get_session().post(ROOT_URL + LOGIN_PATH, headers=headers, json={}, timeout=timeout)
+    except requests.RequestException as e:
+        return {'success': False, 'error': f'刷新登录态失败: {e}', 'error_type': 'network'}
+    if resp.status_code != 200:
+        return {'success': False,
+                'error': f'刷新登录态失败 (http={resp.status_code})，长效 Cookie 可能已失效',
+                'error_type': 'session_invalid'}
+    new_session = None
+    for key, value in resp.headers.items():
+        if key.lower() == 'set-cookie' and value.strip().startswith('X-Cloudide-Session='):
+            new_session = value.strip().split('=', 1)[1].split(';', 1)[0].strip()
+            break
+    if not new_session:
+        return {'success': False, 'error': '刷新登录态响应缺少 X-Cloudide-Session', 'error_type': 'parse'}
+    return {'success': True, 'session': new_session}
 
 
 class TraeWebAPI:

@@ -10,7 +10,7 @@
 pip install requests pycryptodome
 ```
 
-2. **获取账号会话**：浏览器登录 https://www.trae.cn → F12 → 应用(Application) → Cookies → 复制 `X-Cloudide-Session` 的完整值
+2. **获取账号会话**：浏览器登录 https://www.trae.cn → F12 → 应用(Application) → Cookies → 复制 `X-Cloudide-Session` 的完整值；同时复制 `sessionid`、`sid_tt`、`uid_tt` 三个值（约 60 天有效）填入 `refresh_cookies`
 
 3. **写入配置**：在 `config/token.json` 的 `trae` 节点添加账号（`token.json` 已在 .gitignore，不会提交）：
 
@@ -20,14 +20,15 @@ pip install requests pycryptodome
     "accounts": [
       {
         "account_name": "主号",
-        "session": "粘贴 X-Cloudide-Session 的完整值"
+        "session": "粘贴 X-Cloudide-Session 的完整值",
+        "refresh_cookies": "sessionid=xxx; sid_tt=xxx; uid_tt=xxx"
       }
     ]
   }
 }
 ```
 
-> 只有 `session` 是必需的，`account_name` 用于通知里认出账号。签到设备 ID 按账号名自动生成，无需填写。`user_id`/`access_token`/`expires_at`/`device_id` 均为可选增强字段（导入去重、桌面令牌回退），没有也不影响网页会话签到。一个账号一条 `session`，互不影响；会话约 14 天有效，过期后日志会提示"请更新 session"，回浏览器重新复制即可。
+> 只有 `session` 是必需的，`account_name` 用于通知里认出账号。签到设备 ID 自动随机生成，无需填写。`refresh_cookies`（可选但推荐）：配置后脚本每次运行先调 `/cloudide/api/v3/trae/Login` 自动刷新 session（与浏览器打开 trae.cn 的续期链路一致），session 过期也能自动续期，约 60 天不失效；不配置则 session 约 1 天过期，需回浏览器重新复制。`user_id`/`access_token`/`expires_at`/`device_id` 均为可选增强字段（导入去重、桌面令牌回退），没有也不影响网页会话签到。
 
 4. **运行**
 
@@ -60,7 +61,9 @@ python script/trae/import_accounts.py --list      # 先预览
 
 ## 常见问题
 
-- **日志提示"请更新 session"**：session 过期（约 14 天），浏览器重新复制一次即可
+- **日志提示"已用长效 Cookie 刷新 session"**：正常，脚本每次运行自动续期，无需手工更新
+- **日志提示"刷新登录态失败"**：`refresh_cookies` 失效（约 60 天），回浏览器重新复制 `sessionid`/`sid_tt`/`uid_tt`
+- **日志提示"请更新 session"**：未配置 `refresh_cookies` 且 session 过期（约 1 天），浏览器重新复制一次即可；配置 `refresh_cookies` 后不会再出现
 - **日志提示"缺少签到设备 device_id"**：该账号走的是桌面令牌模式但没有可用设备，给它配 `session` 走网页模式即可
 - **结果推送**：复用项目统一推送（`config/notification.json` 配置）
 
