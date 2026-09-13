@@ -10,7 +10,7 @@
 pip install requests pycryptodome
 ```
 
-2. **获取账号会话**：浏览器登录 https://www.trae.cn → F12 → 应用(Application) → Cookies → 复制 `sessionid` 的值（约 60 天有效）
+2. **获取账号会话**：浏览器登录 https://www.trae.cn → F12 → 应用(Application) → Cookies → 复制 `sessionid` 的值（约 60 天有效）。**只需这一个 cookie**，`sid_tt`/`uid_tt`/`passport_*`/`X-Cloudide-Session` 等均不需要。
 
 3. **写入配置**：在 `config/token.json` 的 `trae` 节点添加账号（`token.json` 已在 .gitignore，不会提交）：
 
@@ -27,7 +27,7 @@ pip install requests pycryptodome
 }
 ```
 
-> 只需 `refresh_cookies`（里面填 `sessionid`）一个值即可。脚本每次运行先调 `/cloudide/api/v3/trae/Login` 自动刷新 `X-Cloudide-Session`（与浏览器打开 trae.cn 的续期链路一致），再换 JWT 签到，因此 `session`/`sid_tt`/`uid_tt` 等都不需要配置，约 60 天不用手工更新。`account_name` 用于通知里认出账号；`user_id`/`access_token`/`expires_at`/`device_id` 为可选增强字段（导入去重、桌面令牌回退），没有也不影响签到。
+> 只需 `refresh_cookies`（里面填 `sessionid`）一个值即可，**不需要再填旧式的 `session`（X-Cloudide-Session）**。脚本每次运行先调 `/cloudide/api/v3/trae/Login` 自动刷新 `X-Cloudide-Session`（与浏览器打开 trae.cn 的续期链路一致），再换 JWT 签到，因此 `session`/`sid_tt`/`uid_tt` 等都不需要配置，约 60 天不用手工更新。`account_name` 用于通知里认出账号；`user_id`/`access_token`/`expires_at`/`device_id` 为可选增强字段（导入去重、桌面令牌回退），没有也不影响签到。
 
 4. **运行**
 
@@ -61,6 +61,8 @@ python script/trae/import_accounts.py --list      # 先预览
 ## 常见问题
 
 - **日志提示"已用长效 Cookie 刷新 session"**：正常，脚本每次运行自动续期，无需手工更新
+- **需要配多少个 cookie？**：只需 `sessionid` 一个（约 60 天有效）。`sid_tt`/`uid_tt`/`passport_*`/`X-Cloudide-Session` 等均已实测可去掉，不填也不影响刷新与签到
+- **还要填旧式的 `session` 吗？**：不用。配了 `refresh_cookies` 后脚本自动刷新并填充 `X-Cloudide-Session`，`session` 字段可留空或删除
 - **日志提示"refresh_cookies 失效"**：`sessionid` 失效（约 60 天），回浏览器重新复制 `sessionid`
 - **日志提示"请更新 session"**：账号只配了旧式 `session`（未配 `refresh_cookies`）且已过期，补配 `refresh_cookies` 即可
 - **日志提示"缺少签到设备 device_id"**：该账号走的是桌面令牌模式但没有可用设备，配 `refresh_cookies` 走网页模式即可
