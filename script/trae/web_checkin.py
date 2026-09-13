@@ -31,6 +31,9 @@ import urllib.request
 BASE = "https://api.trae.cn"
 
 
+DEFAULT_UA = "Trae/1.0.0 antigravity-cockpit-tools"
+
+
 def post(path: str, headers: dict, body: str = "") -> tuple:
     req = urllib.request.Request(BASE + path, data=body.encode("utf-8"),
                                  headers=headers, method="POST")
@@ -47,7 +50,7 @@ def get_token(session: str) -> str:
         "Cookie": "X-Cloudide-Session=" + session,
         "Referer": "https://www.trae.cn/",
         "Origin": "https://www.trae.cn",
-        "User-Agent": "TraeCheckin/1.0",
+        "User-Agent": DEFAULT_UA,
         "Accept": "application/json, text/plain, */*",
     }
     status, text = post("/cloudide/api/v3/common/GetUserToken", headers)
@@ -68,7 +71,7 @@ def call_api(path: str, token: str, device_id: str) -> dict:
         "X-User-Region": "cn",
         "x-device-id": device_id,
         "Content-Type": "application/json",
-        "User-Agent": "TraeCheckin/1.0",
+        "User-Agent": DEFAULT_UA,
     }
     status, text = post(path, headers, "{}")
     try:

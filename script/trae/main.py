@@ -68,18 +68,6 @@ DEVICE_MISSING_HINT = (
 DEVICE_SHARED_HINT = "共享设备今日已被其它账号签到（code={code}: {message}），该设备每日仅一次签到名额。如需独立签到请改用网页会话模式（配置 session 即可，无需本机设备）。"
 
 
-def web_device_for(user_id: str) -> str:
-    """
-    网页会话模式的稳定随机设备 ID（16 位数字）
-
-    实测网页链路（GetUserToken 换的 JWT）不校验客户端注册设备，随机设备即可签到；
-    按 user_id 固定生成，保证同一账号每天用同一设备、重复运行幂等。
-    """
-    seed = f'trae-web:{user_id}'
-    rng = random.Random(seed)
-    return str(rng.randint(10 ** 15, 10 ** 16 - 1))
-
-
 class TraeTasks:
     """Trae CN 签到任务自动化执行类"""
 
@@ -193,8 +181,9 @@ class TraeTasks:
         """
         session = str(account_info.get('session') or '').strip()
         if session and not prefer_desktop:
-            user_key = str(account_info.get('user_id') or account_info.get('account_name') or '')
-            device_id = str(account_info.get('device_id') or '').strip() or web_device_for(user_key)
+            # 网页会话 JWT 不绑定设备，随机设备即可签到；实测固定设备会触发
+            # code=9095（该设备当日已被占用），故每次运行使用全新随机设备
+            device_id = str(random.randint(10 ** 15, 10 ** 16 - 1))
             return TraeWebAPI(session=session, device_id=device_id), '网页会话', device_id, None
 
         access_token = account_info.get('access_token')
