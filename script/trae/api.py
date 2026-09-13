@@ -263,9 +263,9 @@ LOGIN_PATH = '/cloudide/api/v3/trae/Login'
 
 def login_refresh(refresh_cookies: str, timeout: int = 30) -> Dict[str, Any]:
     """
-    用长效登录 Cookie（sessionid/sid_tt/uid_tt 等，约 60 天有效）调 /cloudide/api/v3/trae/Login
-    换取全新 X-Cloudide-Session。浏览器每次打开 trae.cn 即走此链路自动续期，
-    脚本据此可在 session 过期后自动刷新，配置不再隔天失效。
+    用长效登录 Cookie 调 /cloudide/api/v3/trae/Login 换取全新 X-Cloudide-Session。
+    实测只需 `sessionid` 一个 Cookie（约 60 天有效）即可刷新；浏览器每次打开
+    trae.cn 即走此链路自动续期，脚本据此可在 session 过期后自动刷新，配置不再隔天失效。
     """
     headers = {
         'Cookie': refresh_cookies,

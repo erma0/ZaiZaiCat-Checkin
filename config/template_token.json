@@ -197,8 +197,7 @@
     "accounts": [
       {
         "account_name": "主号",
-        "session": "浏览器 X-Cloudide-Session 的完整值",
-        "refresh_cookies": "sessionid=xxx; sid_tt=xxx; uid_tt=xxx"
+        "refresh_cookies": "sessionid=浏览器 Cookie 的 sessionid 值"
       }
     ]
   }

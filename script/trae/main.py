@@ -20,8 +20,9 @@ Trae CN 已切换为积分计费，本脚本每天自动为配置中的每个账
   或 code=9074（设备未登记/冲突，文案常为「当前参与用户太多」）拒绝。
 - 网页会话模式（session，推荐多账号）：用 X-Cloudide-Session 换取 JWT 后，随机 16 位设备
   即可签到（实测 code=0）。9074 为偶发风控，脚本会自动换随机设备重试 2 次。
-- 长效登录 Cookie（refresh_cookies，可选）：配置后每次运行先调 /cloudide/api/v3/trae/Login
-  自动刷新 X-Cloudide-Session（与浏览器打开 trae.cn 的续期链路一致），session 约 60 天不失效。
+- 长效登录 Cookie（refresh_cookies，推荐）：配置后每次运行先调 /cloudide/api/v3/trae/Login
+  自动刷新 X-Cloudide-Session（与浏览器打开 trae.cn 的续期链路一致）。实测只需
+  `sessionid` 一个 Cookie 即可刷新，约 60 天不失效；配了它就不再需要手工更新 session。
 
 主要能力：
 - 多账号依次处理，账号间随机延迟 5-10 秒
@@ -205,6 +206,8 @@ class TraeTasks:
 
         access_token = account_info.get('access_token')
         if not access_token:
+            if refresh_cookies:
+                return None, '', None, 'refresh_cookies 失效且未配置 session/access_token，请回浏览器重新复制 sessionid'
             return None, '', None, '账号配置缺少 access_token（或未配置 session）'
 
         expires_at = account_info.get('expires_at')
