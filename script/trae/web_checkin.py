@@ -31,7 +31,10 @@ import urllib.request
 BASE = "https://api.trae.cn"
 
 
-DEFAULT_UA = "Trae/1.0.0 antigravity-cockpit-tools"
+# 与官方网页端请求一致的浏览器 UA
+DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+              "AppleWebKit/537.36 (KHTML, like Gecko) "
+              "Chrome/152.0.0.0 Safari/537.36")
 
 
 def post(path: str, headers: dict, body: str = "") -> tuple:
