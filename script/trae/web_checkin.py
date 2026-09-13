@@ -31,10 +31,8 @@ import urllib.request
 BASE = "https://api.trae.cn"
 
 
-# 与官方网页端请求一致的浏览器 UA
-DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-              "AppleWebKit/537.36 (KHTML, like Gecko) "
-              "Chrome/152.0.0.0 Safari/537.36")
+# 官方桌面客户端（TRAE SOLO CN）真实 UA，抓包确认；实测全链路可用
+DEFAULT_UA = "VSCode 1.107.1 (TRAE SOLO CN)"
 
 
 def post(path: str, headers: dict, body: str = "") -> tuple:

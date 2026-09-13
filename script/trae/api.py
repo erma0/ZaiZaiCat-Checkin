@@ -9,7 +9,7 @@ Trae CN 签到 API 模块
 
 认证与请求头对齐官方网页端请求（浏览器访问 trae.cn 时对 api.trae.cn 的实际请求）：
 - Authorization: Cloud-IDE-JWT <access_token>（不是 Bearer）
-- User-Agent: 浏览器 UA（Chrome/152，与官方网页端一致）
+- User-Agent: 官方桌面客户端真实 UA（VSCode 1.107.1 (TRAE SOLO CN)，抓包确认）
 - x-device-id: 该账号自己注册的设备 ID（本机客户端 icube-dc 后缀的 16 位数字）。
   注意：签到按「账号 × 设备」校验，多账号共用同一设备或使用伪造/随机设备会被拒
   （code=9074/9095）；状态查询接口不校验设备。
@@ -34,10 +34,8 @@ BASE_URL = 'https://api.trae.cn/trae/api/v2/ug'
 CHECKIN_STATUS_PATH = '/checkin_credits/status'
 CHECKIN_CLAIM_PATH = '/checkin_credits/claim'
 
-# 与官方网页端请求一致（浏览器访问 trae.cn 时对 api.trae.cn 的实际 UA）
-DEFAULT_USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/152.0.0.0 Safari/537.36')
+# 官方桌面客户端（TRAE SOLO CN）真实 UA，抓包确认；实测全链路可用
+DEFAULT_USER_AGENT = 'VSCode 1.107.1 (TRAE SOLO CN)'
 
 # 认证类业务错误码：命中即视为凭证失效（令牌过期/被拒），交由上层提示更新
 # 1001 实测文案 "We're sorry, but we are not able to authenticate you."
